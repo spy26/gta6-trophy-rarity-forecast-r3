@@ -24,9 +24,10 @@ Model (calibrated hybrid, stdlib only, deterministic):
     base jumped inside the window (a catch-up scan dilutes every rate at
     once, and a rate-level trend misreads the dip as a falling trend).
     The jump statistic is the largest one-step log-N increase minus the
-    median one-step increase; the weight ramps in over jump statistics
-    0.15--0.30.
-  * Frozen history (every read in the window identical -- no refresh seen
+    median *positive* one-step increase (between the 6-hourly refreshes
+    the page is flat, so the background must be measured on positive
+    steps only -- the plain median over all steps fires on every normal
+    refresh); the weight ramps in over jump statistics 0.15--0.30.  * Frozen history (every read in the window identical -- no refresh seen
     yet, as on launch night): the next refresh brings more tracked players,
     so rates dilute. The median is C's median shifted down by 1.5 logit
     (the shift implied by the known first-refresh dilution, N 638 -> 3,868,
@@ -199,17 +200,20 @@ def history_frozen(case, win):
 
 
 def n_jump_stat(win):
-    """Largest one-step log-N increase minus the median one-step increase.
-    A catch-up scan shows up as one big step against a background of small
-    (or zero) steps; smooth growth gives a stat near 0."""
+    """Largest one-step log-N increase minus the median POSITIVE one-step
+    increase. Between 6-hourly refreshes the page is flat (zero steps);
+    the old detector's median over ALL steps is ~0, so any refresh step
+    looks like a jump. Using only positive steps as the background makes
+    the detector fire only on steps that beat normal refresh growth --
+    the same R4 gain with no cost on the 6-h / 24-h cuts."""
     steps = []
     for a, b in zip(win, win[1:]):
         steps.append(math.log(max(1.0, b["players_tracked"]))
                      - math.log(max(1.0, a["players_tracked"])))
-    if not steps:
+    pos = sorted(s for s in steps if s > 1e-9)
+    if not steps or not pos:
         return 0.0
-    srt = sorted(steps)
-    med = srt[len(srt) // 2]
+    med = pos[len(pos) // 2]
     return max(steps) - med
 
 
