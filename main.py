@@ -84,7 +84,7 @@ DRIFT_FRAC_B = 0.25      # B spread growth with the extrapolated move
 FROZEN_SHIFT = -1.5      # frozen-history dilution shift (logit)
 FROZEN_SIGMA = 0.7       # frozen-history spread (logit)
 SPREAD_SCALE = 0.45      # non-frozen spread calibration (see docstring)
-SPREAD_RAMP_TAU = 0.25   # horizon (days) over which the spread scale ramps
+SPREAD_RAMP_TAU = 0.40   # horizon (days) over which the spread scale ramps
                          # from 1.0 at horizon 0 down to SPREAD_SCALE
 BLEND_W_C = 0.5          # base weight of C in the logit-average with B
 JUMP_LO = 0.15           # jump statistic where the C weight starts rising
@@ -321,7 +321,10 @@ def spread_scale(days):
     to SPREAD_SCALE at long horizons. At short horizons the median carries
     a systematic bias (mean|d| 0.48 logit at 6 h), so the calibrated narrow
     spread under-covers; at 4.5 d the median is accurate and the full 0.45
-    applies (scale 0.4500 at 4.5 d, so the main metrics are untouched)."""
+    applies (scale 0.4500 at 4.5 d, so the main metrics are untouched).
+    Tau 0.40 (swept 0.25/0.35/0.40/0.50) restores the short-horizon width
+    the 0.25 ramp lost: scale at 6 h 0.65 -> 0.74, back to the R2 level,
+    while the 4.5 d scale stays 0.45 and practice/synth are unchanged."""
     return SPREAD_SCALE + (1.0 - SPREAD_SCALE) * math.exp(-days / SPREAD_RAMP_TAU)
 
 
